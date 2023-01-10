@@ -324,7 +324,7 @@ export async function deployAndSetupContracts() {
 
   const {collectionInitializeData, feeConfig, dopeNFTConfig} = deployConfig();
 
-  /* await deploy('NFTCollection', 'NFTCollection', []);
+  await deploy('NFTCollection', 'NFTCollection', []);
 
   const NFTColletion = await getContractForEnvironment<NFTCollection>(
     hre,
@@ -364,7 +364,7 @@ export async function deployAndSetupContracts() {
   ]);
   await deploy('RangeCollectionMinter', 'RangeCollectionMinter', [
     feeRegistryDep.address,
-  ]); */
+  ]);
 
   if (dopeNFTConfig.shouldDeploy) {
     await deployUpgradeableContract(deploy, 'DopeNFT');
