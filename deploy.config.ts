@@ -19,6 +19,13 @@ export type DeployConfig = {
     feeRecipient: string;
     platformFeeBPS: BigNumberish;
   };
+  dopeNFTConfig: {
+    shouldDeploy: boolean;
+    name: string;
+    symbol: string;
+    baseURI: string;
+    contractURI: string;
+  };
 };
 
 const toTokenAmount = (amount: BigNumberish, tokenDecimal: BigNumberish) => {
@@ -44,6 +51,13 @@ const config: {[key: string]: DeployConfig} = {
       feeRecipient: 'deployer',
       platformFeeBPS: 500,
     },
+    dopeNFTConfig: {
+      shouldDeploy: true,
+      name: 'Dope',
+      symbol: 'DOPE',
+      baseURI: '',
+      contractURI: '',
+    },
   },
   goerli: {
     collectionInitializeData: {
@@ -62,6 +76,13 @@ const config: {[key: string]: DeployConfig} = {
     feeConfig: {
       feeRecipient: 'deployer',
       platformFeeBPS: 500,
+    },
+    dopeNFTConfig: {
+      shouldDeploy: true,
+      name: 'DopeTest',
+      symbol: 'DOPETEST',
+      baseURI: '',
+      contractURI: '',
     },
   },
 };

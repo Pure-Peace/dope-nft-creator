@@ -80,7 +80,7 @@ const DEF_GET_CONTRACT_FOR_ENVIRONMENT = {
   ),
   DopeNFT: generateEnvNameContractDefHelper(
     {},
-    {lookupName: 'DopeNFT', abiName: 'DopeNFT'}
+    {lookupName: 'DopeNFTProxy', abiName: 'DopeNFT'}
   ),
 };
 type TContractSlug = keyof typeof DEF_GET_CONTRACT_FOR_ENVIRONMENT;

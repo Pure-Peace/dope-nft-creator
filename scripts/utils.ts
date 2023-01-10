@@ -21,6 +21,7 @@ import {
 } from './constants';
 
 import NETWORK_DEPLOY_CONFIG, {DeployConfig} from '../deploy.config';
+import {DopeNFT} from '../typechain/DopeNFT';
 
 require('dotenv').config();
 const prompts = require('prompts');
@@ -318,38 +319,12 @@ export async function tryInitializeUpgradeableContract<T extends Contract>(
   await waitContractCall(await contract.initialize(...initializeArgs));
 }
 
-export async function getProxies(
-  deploy: (
-    deployName: string,
-    contractName: string,
-    args?: any[]
-  ) => Promise<DeployResult>,
-  marketRegistry: {
-    proxies: string[];
-    isLibs: boolean[];
-  }
-) {
-  const proxies = [];
-  for (const i of marketRegistry.proxies) {
-    if (!i.startsWith('0x')) {
-      const dep = await deploy(i, i);
-      proxies.push(dep.address);
-    } else {
-      proxies.push(i);
-    }
-  }
-  if (proxies.length != marketRegistry.isLibs.length)
-    throw new Error('Invalid marketRegistry config length');
-
-  return proxies;
-}
-
 export async function deployAndSetupContracts() {
   const {deployer, deploy} = await setup();
 
-  const {collectionInitializeData, feeConfig} = deployConfig();
+  const {collectionInitializeData, feeConfig, dopeNFTConfig} = deployConfig();
 
-  await deploy('NFTCollection', 'NFTCollection', []);
+  /* await deploy('NFTCollection', 'NFTCollection', []);
 
   const NFTColletion = await getContractForEnvironment<NFTCollection>(
     hre,
@@ -389,5 +364,20 @@ export async function deployAndSetupContracts() {
   ]);
   await deploy('RangeCollectionMinter', 'RangeCollectionMinter', [
     feeRegistryDep.address,
-  ]);
+  ]); */
+
+  if (dopeNFTConfig.shouldDeploy) {
+    await deployUpgradeableContract(deploy, 'DopeNFT');
+    const DopeNFT = await getContractForEnvironment<DopeNFT>(
+      hre,
+      'DopeNFT',
+      deployer
+    );
+    await tryInitializeUpgradeableContract(DopeNFT, [
+      dopeNFTConfig.name,
+      dopeNFTConfig.symbol,
+      dopeNFTConfig.baseURI,
+      dopeNFTConfig.contractURI,
+    ]);
+  }
 }
