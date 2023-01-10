@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/explicit-module-boundary-types */
 /* eslint-disable @typescript-eslint/no-var-requires */
 import hre from 'hardhat';
-import {BigNumber, Contract, ContractTransaction, Signer} from 'ethers';
+import {BigNumber, Contract, ContractTransaction, utils, Signer} from 'ethers';
 import {DeployResult} from 'hardhat-deploy/types';
 import fs from 'fs';
 import path from 'path';
@@ -85,7 +85,7 @@ export async function setup(): Promise<{
         log: true,
         skipIfAlreadyDeployed: false,
         gasLimit: GAS_LIMIT,
-        gasPrice: '2500000000',
+        gasPrice: '2900000000',
         from: deployer.address,
       });
       console.log(

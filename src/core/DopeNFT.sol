@@ -136,7 +136,7 @@ contract DopeNFT is IDopeNFT, ERC721AQueryableUpgradeable, ERC721ABurnableUpgrad
         if (!_exists(tokenId)) revert URIQueryForNonexistentToken();
 
         if (isTokenMetadataFrozen(tokenId)) {
-            return _frozenTokensURI[tokenId];
+            return string.concat(_frozenTokensURI[tokenId], _toString(tokenId));
         }
 
         string memory baseURI_ = _baseURIStorage;
