@@ -196,7 +196,8 @@ interface IRangeCollectionMinter is IMinterModule {
         address collection,
         uint128 mintId,
         uint32 quantity,
-        address affiliate
+        address affiliate,
+        address to
     ) external payable;
 
     /*

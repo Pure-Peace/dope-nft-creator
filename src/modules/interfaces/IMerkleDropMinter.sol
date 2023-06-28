@@ -167,7 +167,8 @@ interface IMerkleDropMinter is IMinterModule {
         uint128 mintId,
         uint32 requestedQuantity,
         bytes32[] calldata merkleProof,
-        address affiliate
+        address affiliate,
+        address to
     ) external payable;
 
     /*

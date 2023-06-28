@@ -151,7 +151,8 @@ interface IFixedPriceSignatureMinter is IMinterModule {
         uint32 signedQuantity,
         address affiliate,
         bytes calldata signature,
-        uint32 claimTicket
+        uint32 claimTicket,
+        address to
     ) external payable;
 
     /*

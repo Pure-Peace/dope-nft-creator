@@ -24,6 +24,14 @@ interface IMinterModule is IERC165 {
         bool mintPaused;
     }
 
+    struct Affiliation {
+        uint128 remainingPayment;
+        uint128 requiredEtherValue;
+        uint128 platformFee;
+        uint128 affiliateFee;
+        bool affiliated;
+    }
+
     // =============================================================
     //                            EVENTS
     // =============================================================
@@ -51,7 +59,11 @@ interface IMinterModule is IERC165 {
      * @param mintId  The mint ID, to distinguish between multiple mints for the same collection.
      * @param paused  The new paused status.
      */
-    event MintPausedSet(address indexed collection, uint128 mintId, bool paused);
+    event MintPausedSet(
+        address indexed collection,
+        uint128 mintId,
+        bool paused
+    );
 
     /**
      * @dev Emitted when the `paused` status of `collection` is updated.
@@ -60,7 +72,12 @@ interface IMinterModule is IERC165 {
      * @param startTime The start time of the mint.
      * @param endTime   The end time of the mint.
      */
-    event TimeRangeSet(address indexed collection, uint128 indexed mintId, uint32 startTime, uint32 endTime);
+    event TimeRangeSet(
+        address indexed collection,
+        uint128 indexed mintId,
+        uint32 startTime,
+        uint32 endTime
+    );
 
     /**
      * @notice Emitted when the `affiliateFeeBPS` is updated.
@@ -68,7 +85,11 @@ interface IMinterModule is IERC165 {
      * @param mintId  The mint ID, to distinguish between multiple mints for the same collection.
      * @param bps     The affiliate fee basis points.
      */
-    event AffiliateFeeSet(address indexed collection, uint128 indexed mintId, uint16 bps);
+    event AffiliateFeeSet(
+        address indexed collection,
+        uint128 indexed mintId,
+        uint16 bps
+    );
 
     /**
      * @notice Emitted when a mint happens.
@@ -212,7 +233,10 @@ interface IMinterModule is IERC165 {
      * @param affiliate The affiliate's address.
      * @return The latest value.
      */
-    function affiliateFeesAccrued(address affiliate) external view returns (uint128);
+    function affiliateFeesAccrued(address affiliate)
+        external
+        view
+        returns (uint128);
 
     /**
      * @dev The total fees accrued for the platform.

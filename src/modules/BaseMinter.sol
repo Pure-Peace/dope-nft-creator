@@ -59,7 +59,8 @@ abstract contract BaseMinter is IMinterModule {
     // =============================================================
 
     constructor(INFTFeeRegistry feeRegistry_) {
-        if (address(feeRegistry_) == address(0)) revert FeeRegistryIsZeroAddress();
+        if (address(feeRegistry_) == address(0))
+            revert FeeRegistryIsZeroAddress();
         feeRegistry = feeRegistry_;
     }
 
@@ -87,7 +88,12 @@ abstract contract BaseMinter is IMinterModule {
         uint128 mintId,
         uint32 startTime,
         uint32 endTime
-    ) public virtual onlyCollectionOwnerOrAdmin(collection) onlyValidTimeRange(startTime, endTime) {
+    )
+        public
+        virtual
+        onlyCollectionOwnerOrAdmin(collection)
+        onlyValidTimeRange(startTime, endTime)
+    {
         _baseData[collection][mintId].startTime = startTime;
         _baseData[collection][mintId].endTime = endTime;
 
@@ -101,7 +107,13 @@ abstract contract BaseMinter is IMinterModule {
         address collection,
         uint128 mintId,
         uint16 feeBPS
-    ) public virtual override onlyCollectionOwnerOrAdmin(collection) onlyValidAffiliateFeeBPS(feeBPS) {
+    )
+        public
+        virtual
+        override
+        onlyCollectionOwnerOrAdmin(collection)
+        onlyValidAffiliateFeeBPS(feeBPS)
+    {
         _baseData[collection][mintId].affiliateFeeBPS = feeBPS;
         emit AffiliateFeeSet(collection, mintId, feeBPS);
     }
@@ -124,7 +136,10 @@ abstract contract BaseMinter is IMinterModule {
         uint256 accrued = _platformFeesAccrued;
         if (accrued != 0) {
             _platformFeesAccrued = 0;
-            SafeTransferLib.safeTransferETH(feeRegistry.nftFeeAddress(), accrued);
+            SafeTransferLib.safeTransferETH(
+                feeRegistry.nftFeeAddress(),
+                accrued
+            );
         }
     }
 
@@ -142,7 +157,11 @@ abstract contract BaseMinter is IMinterModule {
     /**
      * @inheritdoc IMinterModule
      */
-    function affiliateFeesAccrued(address affiliate) external view returns (uint128) {
+    function affiliateFeesAccrued(address affiliate)
+        external
+        view
+        returns (uint128)
+    {
         return _affiliateFeesAccrued[affiliate];
     }
 
@@ -174,8 +193,15 @@ abstract contract BaseMinter is IMinterModule {
     /**
      * @inheritdoc IERC165
      */
-    function supportsInterface(bytes4 interfaceId) public view virtual returns (bool) {
-        return interfaceId == type(IMinterModule).interfaceId || interfaceId == this.supportsInterface.selector;
+    function supportsInterface(bytes4 interfaceId)
+        public
+        view
+        virtual
+        returns (bool)
+    {
+        return
+            interfaceId == type(IMinterModule).interfaceId ||
+            interfaceId == this.supportsInterface.selector;
     }
 
     /**
@@ -199,7 +225,10 @@ abstract contract BaseMinter is IMinterModule {
     modifier onlyCollectionOwnerOrAdmin(address collection) virtual {
         if (
             msg.sender != OwnableRoles(collection).owner() &&
-            !OwnableRoles(collection).hasAnyRole(msg.sender, INFTCollection(collection).ADMIN_ROLE())
+            !OwnableRoles(collection).hasAnyRole(
+                msg.sender,
+                INFTCollection(collection).ADMIN_ROLE()
+            )
         ) revert Unauthorized();
 
         _;
@@ -254,7 +283,14 @@ abstract contract BaseMinter is IMinterModule {
 
         _nextMintId = mintId + 1;
 
-        emit MintConfigCreated(collection, msg.sender, mintId, startTime, endTime, affiliateFeeBPS);
+        emit MintConfigCreated(
+            collection,
+            msg.sender,
+            mintId,
+            startTime,
+            endTime,
+            affiliateFeeBPS
+        );
     }
 
     /**
@@ -280,29 +316,90 @@ abstract contract BaseMinter is IMinterModule {
         {
             uint32 startTime = baseData.startTime;
             uint32 endTime = baseData.endTime;
-            if (block.timestamp < startTime) revert MintNotOpen(block.timestamp, startTime, endTime);
-            if (block.timestamp > endTime) revert MintNotOpen(block.timestamp, startTime, endTime);
+            if (block.timestamp < startTime)
+                revert MintNotOpen(block.timestamp, startTime, endTime);
+            if (block.timestamp > endTime)
+                revert MintNotOpen(block.timestamp, startTime, endTime);
             if (baseData.mintPaused) revert MintPaused();
         }
 
         /* ----------- AFFILIATE AND PLATFORM FEES LOGIC ------------ */
 
-        uint128 requiredEtherValue = totalPrice(collection, mintId, msg.sender, quantity);
+        Affiliation memory affiliation = _affiliate(
+            collection,
+            mintId,
+            quantity,
+            affiliate,
+            baseData.affiliateFeeBPS
+        );
+
+        /* ------------------------- MINT --------------------------- */
+
+        uint256 fromTokenId = INFTCollection(collection).mint{
+            value: affiliation.remainingPayment
+        }(to, quantity);
+
+        // Emit the event.
+        emit Minted(
+            collection,
+            mintId,
+            to,
+            // Need to put this call here to avoid stack-too-deep error (it returns fromTokenId)
+            uint32(fromTokenId),
+            quantity,
+            affiliation.requiredEtherValue,
+            affiliation.platformFee,
+            affiliation.affiliateFee,
+            affiliate,
+            affiliation.affiliated
+        );
+
+        /* ------------------------- REFUND ------------------------- */
+
+        unchecked {
+            // Note: We do this at the end to avoid creating a reentrancy vector.
+            // Refund the user any ETH they spent over the current total price of the NFTs.
+            if (msg.value > affiliation.requiredEtherValue) {
+                SafeTransferLib.safeTransferETH(
+                    msg.sender,
+                    msg.value - affiliation.requiredEtherValue
+                );
+            }
+        }
+    }
+
+    function _affiliate(
+        address collection,
+        uint128 mintId,
+        uint32 quantity,
+        address affiliate,
+        uint256 affiliateFeeBPS
+    ) internal returns (Affiliation memory) {
+        uint128 requiredEtherValue = totalPrice(
+            collection,
+            mintId,
+            msg.sender,
+            quantity
+        );
 
         // Reverts if the payment is not exact.
-        if (msg.value < requiredEtherValue) revert Underpaid(msg.value, requiredEtherValue);
+        if (msg.value < requiredEtherValue)
+            revert Underpaid(msg.value, requiredEtherValue);
 
-        (uint128 remainingPayment, uint128 platformFee) = _deductPlatformFee(requiredEtherValue);
+        (uint128 remainingPayment, uint128 platformFee) = _deductPlatformFee(
+            requiredEtherValue
+        );
 
+        uint128 affiliateFee;
         // Check if the mint is an affiliated mint.
         bool affiliated = isAffiliated(collection, mintId, affiliate);
-        uint128 affiliateFee;
         unchecked {
             if (affiliated) {
                 // Compute the affiliate fee.
                 // Won't overflow, as `remainingPayment` is 128 bits, and `affiliateFeeBPS` is 16 bits.
                 affiliateFee = uint128(
-                    (uint256(remainingPayment) * uint256(baseData.affiliateFeeBPS)) / uint256(_MAX_BPS)
+                    (uint256(remainingPayment) * affiliateFeeBPS) /
+                        uint256(_MAX_BPS)
                 );
                 // Deduct the affiliate fee from the remaining payment.
                 // Won't underflow as `affiliateFee <= remainingPayment`.
@@ -313,32 +410,14 @@ abstract contract BaseMinter is IMinterModule {
             }
         }
 
-        /* ------------------------- MINT --------------------------- */
-
-        // Emit the event.
-        emit Minted(
-            collection,
-            mintId,
-            to,
-            // Need to put this call here to avoid stack-too-deep error (it returns fromTokenId)
-            uint32(INFTCollection(collection).mint{value: remainingPayment}(to, quantity)),
-            quantity,
-            requiredEtherValue,
-            platformFee,
-            affiliateFee,
-            affiliate,
-            affiliated
-        );
-
-        /* ------------------------- REFUND ------------------------- */
-
-        unchecked {
-            // Note: We do this at the end to avoid creating a reentrancy vector.
-            // Refund the user any ETH they spent over the current total price of the NFTs.
-            if (msg.value > requiredEtherValue) {
-                SafeTransferLib.safeTransferETH(msg.sender, msg.value - requiredEtherValue);
-            }
-        }
+        return
+            Affiliation(
+                remainingPayment,
+                requiredEtherValue,
+                platformFee,
+                affiliateFee,
+                affiliated
+            );
     }
 
     /**
@@ -381,7 +460,9 @@ abstract contract BaseMinter is IMinterModule {
                 // Note that the `maxMintable` may vary and drop over time
                 // and cause `totalMinted` to be greater than `maxMintable`.
                 // The `zeroFloorSub` is equivalent to `max(0, x - y)`.
-                uint32 available = uint32(FixedPointMathLib.zeroFloorSub(maxMintable, totalMinted));
+                uint32 available = uint32(
+                    FixedPointMathLib.zeroFloorSub(maxMintable, totalMinted)
+                );
                 revert ExceedsAvailableSupply(available);
             }
             return uint32(sum);
