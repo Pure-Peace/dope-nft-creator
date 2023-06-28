@@ -24,3 +24,4 @@ abibuild/
 deployments/
 *-lock.*
 *.lock
+.deps

@@ -271,7 +271,8 @@ abstract contract BaseMinter is IMinterModule {
         address collection,
         uint128 mintId,
         uint32 quantity,
-        address affiliate
+        address affiliate,
+        address to
     ) internal {
         BaseData storage baseData = _baseData[collection][mintId];
 
@@ -318,9 +319,9 @@ abstract contract BaseMinter is IMinterModule {
         emit Minted(
             collection,
             mintId,
-            msg.sender,
+            to,
             // Need to put this call here to avoid stack-too-deep error (it returns fromTokenId)
-            uint32(INFTCollection(collection).mint{value: remainingPayment}(msg.sender, quantity)),
+            uint32(INFTCollection(collection).mint{value: remainingPayment}(to, quantity)),
             quantity,
             requiredEtherValue,
             platformFee,

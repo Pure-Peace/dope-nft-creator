@@ -82,7 +82,8 @@ contract RangeCollectionMinter is IRangeCollectionMinter, BaseMinter {
         address collection,
         uint128 mintId,
         uint32 quantity,
-        address affiliate
+        address affiliate,
+        address to
     ) public payable {
         CollectionMintData storage data = _collectionMintData[collection][mintId];
 
@@ -94,13 +95,13 @@ contract RangeCollectionMinter is IRangeCollectionMinter, BaseMinter {
 
         unchecked {
             // Check the additional `requestedQuantity` does not exceed the maximum mintable per account.
-            uint256 numberMinted = INFTCollection(collection).numberMinted(msg.sender);
+            uint256 numberMinted = INFTCollection(collection).numberMinted(to);
             // Won't overflow. The total number of tokens minted in `collection` won't exceed `type(uint32).max`,
             // and `quantity` has 32 bits.
             if (numberMinted + quantity > data.maxMintablePerAccount) revert ExceedsMaxPerAccount();
         }
 
-        _mint(collection, mintId, quantity, affiliate);
+        _mint(collection, mintId, quantity, affiliate, to);
     }
 
     /**

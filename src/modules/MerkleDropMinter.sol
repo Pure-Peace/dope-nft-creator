@@ -80,7 +80,8 @@ contract MerkleDropMinter is IMerkleDropMinter, BaseMinter {
         uint128 mintId,
         uint32 requestedQuantity,
         bytes32[] calldata merkleProof,
-        address affiliate
+        address affiliate,
+        address to
     ) public payable {
         CollectionMintData storage data = _collectionMintData[collection][mintId];
 
@@ -88,21 +89,21 @@ contract MerkleDropMinter is IMerkleDropMinter, BaseMinter {
         // Require that the increased value does not exceed `maxMintable`.
         data.totalMinted = _incrementTotalMinted(data.totalMinted, requestedQuantity, data.maxMintable);
 
-        bytes32 leaf = keccak256(abi.encodePacked(msg.sender));
+        bytes32 leaf = keccak256(abi.encodePacked(to));
         bool valid = MerkleProofLib.verify(merkleProof, data.merkleRootHash, leaf);
         if (!valid) revert InvalidMerkleProof();
 
         unchecked {
             // Check the additional `requestedQuantity` does not exceed the maximum mintable per account.
-            uint256 numberMinted = INFTCollection(collection).numberMinted(msg.sender);
+            uint256 numberMinted = INFTCollection(collection).numberMinted(to);
             // Won't overflow. The total number of tokens minted in `collection` won't exceed `type(uint32).max`,
             // and `quantity` has 32 bits.
             if (numberMinted + requestedQuantity > data.maxMintablePerAccount) revert ExceedsMaxPerAccount();
         }
 
-        _mint(collection, mintId, requestedQuantity, affiliate);
+        _mint(collection, mintId, requestedQuantity, affiliate, to);
 
-        emit DropClaimed(msg.sender, requestedQuantity);
+        emit DropClaimed(to, requestedQuantity);
     }
 
     /**
